@@ -27,6 +27,25 @@ const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || window.location.hostna
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '3001';
 const BACKEND_URL = isDev ? `${window.location.protocol}//${BACKEND_HOST}:${BACKEND_PORT}` : window.location.origin;
 
+const namelist_a = [
+    "Alpha", "Apex", "Astro", "Blaze", "Chaos", "Cosmic", "Cyber", "Dark", 
+    "Doom", "Echo", "Electric", "Elite", "Fatal", "Frost", "Ghost", "Hyper", 
+    "Iron", "Lunar", "Matrix", "Mega", "Mystic", "Neon", "Nova", "Omega", 
+    "Phantom", "Pixel", "Quantum", "Radical", "Rogue", "Shadow", "Solar", 
+    "Sonic", "Spectral", "Static", "Stealth", "Storm", "Toxic", "Turbo", 
+    "Vortex", "Zephyr"
+];
+
+const namelist_b = [
+    "Assassin", "Beast", "Blade", "Bolt", "Cobra", "Crusader", "Cyborg", "Demon", 
+    "Dragon", "Eagle", "Falcon", "Fury", "Glitch", "Hacker", "Hunter", "Hydra", 
+    "Knight", "Laser", "Legend", "Lynx", "Mamba", "Matrix", "Ninja", "Nomad", 
+    "Outlaw", "Panther", "Pharaoh", "Phoenix", "Pulse", "Raven", "Reaper", "Rider", 
+    "Samurai", "Scorpion", "Shark", "Sniper", "Titan", "Viper", "Warlock", "Wolf"
+];
+
+const getMixedName = () => `${namelist_a[Math.floor(Math.random() * namelist_a.length)]} ${namelist_b[Math.floor(Math.random() * namelist_b.length)]}`;
+
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -383,7 +402,7 @@ export default function App() {
         id: genId('pane'),
         type: 'terminal',
         sessionId: sessionId,
-        title: 'Terminal'
+        title: getMixedName()
       },
       activeSessionId: sessionId
     };
@@ -469,8 +488,8 @@ export default function App() {
           direction,
           sizes: [50, 50],
           children: [
-            { id: genId('pane'), type: 'terminal', sessionId: node.sessionId, title: node.title || 'Terminal' },
-            { id: genId('pane'), type: 'terminal', sessionId: newSessionId, title: 'Terminal Split' }
+            { id: genId('pane'), type: 'terminal', sessionId: node.sessionId, title: node.title || getMixedName() },
+            { id: genId('pane'), type: 'terminal', sessionId: newSessionId, title: getMixedName() }
           ]
         };
       }
