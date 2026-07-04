@@ -2,8 +2,6 @@
 
 A full-stack Node.js and React application featuring real-time, interactive terminal sessions on the frontend using **xterm.js** and **node-pty** on the backend over **WebSockets**, secured with **session-token authentication**.
 
-
-# Screen
 ![cTerm-Workspace](media/screenshot.png)
 
 ## Features
@@ -46,10 +44,15 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
    ```
 
 2. **Configure Environment Variables**:
-   By default, `server/.env` is configured with:
+   For server, `server/env_example` has example configuration:
    - `PORT=3001`
    - `AUTH_USERNAME=admin`
    - `AUTH_PASSWORD=admin`
+   to use this just copy the file to .env in the server folder.
+
+   For client, `client/env_example` has example configuration:
+   - `VITE_BACKEND_PORT=3001`
+   to use this just copy the file to .env in the client folder.
 
    Feel free to edit `server/.env` to change credentials.
 
