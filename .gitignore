@@ -17,6 +17,10 @@ build/
 **/.env
 **/.env.local
 
+# Databases and Local State files
+workspaces.json
+**/workspaces.json
+
 # OS Files
 .DS_Store
 Thumbs.db

@@ -7,6 +7,8 @@ import pty from 'node-pty';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+import { execSync } from 'child_process';
+import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,6 +58,35 @@ app.post('/api/login', (req, res) => {
     res.json({ success: true, token });
   } else {
     res.status(401).json({ error: 'Invalid username or password' });
+  }
+});
+
+// Path to workspaces JSON database file
+const WORKSPACES_FILE = path.join(__dirname, 'workspaces.json');
+
+// Fetch workspaces configuration
+app.get('/api/workspaces', authenticate, async (req, res) => {
+  try {
+    const data = await fs.readFile(WORKSPACES_FILE, 'utf8');
+    res.json(JSON.parse(data));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.json({ workspaces: [], activeWorkspaceId: null });
+    }
+    console.error('Failed to read workspaces:', error);
+    res.status(500).json({ error: 'Failed to read workspaces from database' });
+  }
+});
+
+// Update/Save workspaces configuration
+app.post('/api/workspaces', authenticate, async (req, res) => {
+  const { workspaces, activeWorkspaceId } = req.body;
+  try {
+    await fs.writeFile(WORKSPACES_FILE, JSON.stringify({ workspaces, activeWorkspaceId }, null, 2), 'utf8');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to save workspaces:', error);
+    res.status(500).json({ error: 'Failed to save workspaces to database' });
   }
 });
 
