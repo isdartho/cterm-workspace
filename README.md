@@ -1,4 +1,4 @@
-# cTerm-Workspace - Web-Based Terminal Workspace Manager
+# cTerm - Web-Based Terminal Workspace Manager
 
 A full-stack Node.js and React application featuring real-time, interactive terminal sessions on the frontend using **xterm.js** and **node-pty** on the backend over **WebSockets**, secured with **session-token authentication**.
 
