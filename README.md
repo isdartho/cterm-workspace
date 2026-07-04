@@ -44,6 +44,7 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
    ```
 
 2. **Configure Environment Variables**:
+
    For server, `server/env_example` has example configuration:
    - `PORT=3001`
    - `AUTH_USERNAME=admin`
@@ -54,7 +55,6 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
    - `VITE_BACKEND_PORT=3001`
    to use this just copy the file to .env in the client folder.
 
-   Feel free to edit `server/.env` to change credentials.
 
 3. **Start the development servers concurrently**:
    ```bash
