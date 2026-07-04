@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "@xterm/xterm/css/xterm.css";
+
+:root {
+  --bg-app: #090a0f;
+  --bg-panel: rgba(18, 20, 30, 0.7);
+  --bg-panel-solid: #12141e;
+  --bg-sidebar: #0d0e14;
+  --bg-active-tab: #1b1e2e;
+  --bg-hover-tab: #161824;
+  --color-primary: #7c4dff;
+  --color-primary-glow: rgba(124, 77, 255, 0.2);
+  --color-accent: #00e5ff;
+  --color-accent-glow: rgba(0, 229, 255, 0.15);
+  --color-text-main: #e2e8f0;
+  --color-text-muted: #64748b;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-active: rgba(124, 77, 255, 0.4);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  --border-radius: 12px;
+  --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--color-text-main);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Utility Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseBorder {
+  0% { border-color: rgba(124, 77, 255, 0.2); }
+  50% { border-color: rgba(124, 77, 255, 0.6); }
+  100% { border-color: rgba(124, 77, 255, 0.2); }
+}
+
+/* XTerm Customizations */
+.xterm {
+  padding: 16px;
+  height: 100%;
+}
+
+.xterm-viewport {
+  background-color: transparent !important;
+}
+
+.xterm-screen {
+  font-family: var(--font-mono) !important;
+}
