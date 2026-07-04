@@ -71,7 +71,7 @@ export default function PaneLayout({
         }}
       >
         {/* First Child Pane */}
-        <div style={{ flex: `${firstSize} 1 0%`, overflow: 'hidden' }}>
+        <div style={{ flex: `${firstSize} 1 0%`, overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
           <PaneLayout 
             node={node.children[0]} 
             settings={settings}
@@ -105,7 +105,7 @@ export default function PaneLayout({
         />
 
         {/* Second Child Pane */}
-        <div style={{ flex: `${secondSize} 1 0%`, overflow: 'hidden' }}>
+        <div style={{ flex: `${secondSize} 1 0%`, overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
           <PaneLayout 
             node={node.children[1]} 
             settings={settings}

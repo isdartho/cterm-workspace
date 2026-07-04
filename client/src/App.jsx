@@ -11,10 +11,12 @@ import {
   Check,
   FolderOpen,
   X,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import PaneLayout from './components/PaneLayout';
 import { sessionManager } from './services/TerminalSessionManager';
@@ -99,7 +101,7 @@ function LoginScreen({ onLoginSuccess }) {
             background: 'linear-gradient(135deg, #ffffff 40%, #c084fc 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
-          }}>cterm Login</h2>
+          }}>cTerm Login</h2>
           <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
             Authenticate to access terminal sessions
           </p>
@@ -221,6 +223,7 @@ const genId = (prefix) => `${prefix}-${Math.random().toString(36).substring(2, 1
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem('cterm_auth_token'));
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isPreferencesCollapsed, setIsPreferencesCollapsed] = useState(true);
 
   const handleLogout = () => {
     sessionStorage.removeItem('cterm_auth_token');
@@ -656,12 +659,12 @@ export default function App() {
               background: 'linear-gradient(135deg, #ffffff 30%, #a78bfa 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
-            }}>cterm Workspace</h1>
+            }}>cTerm Workspace</h1>
           </div>
           
-          {/* Log Out */}
+          {/* Collapse Sidebar Trigger */}
           <button
-            onClick={handleLogout}
+            onClick={() => setIsSidebarCollapsed(true)}
             style={{
               marginLeft: 'auto',
               background: 'none',
@@ -675,29 +678,9 @@ export default function App() {
               transition: 'var(--transition-smooth)'
             }}
             className="hover-icon"
-            title="Log Out"
-          >
-            <LogOut size={16} />
-          </button>
-
-          {/* Collapse Sidebar Trigger */}
-          <button
-            onClick={() => setIsSidebarCollapsed(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-              padding: '4px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'var(--transition-smooth)'
-            }}
-            className="hover-icon"
             title="Collapse Sidebar"
           >
-            <ChevronLeft size={16} />
+            <PanelLeftClose size={16} />
           </button>
         </div>
 
@@ -862,100 +845,151 @@ export default function App() {
         {/* Global Settings Panel */}
         <div style={{
           borderTop: '1px solid var(--color-border)',
-          padding: '20px 16px',
+          padding: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
+          gap: '12px',
           backgroundColor: 'rgba(0,0,0,0.15)'
         }}>
-          <span style={{
-            fontSize: '11px',
-            textTransform: 'uppercase',
-            letterSpacing: '1.5px',
-            fontWeight: 600,
-            color: 'var(--color-text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Sliders size={12} />
-            Preferences
-          </span>
-
-          {/* Theme */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Palette size={10} />
-              Theme
-            </label>
-            <select 
-              value={settings.theme} 
-              onChange={(e) => setSettings({...settings, theme: e.target.value})}
-              style={{
-                backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-              }}
-            >
-              <option value="dracula">Dracula (Classic)</option>
-              <option value="nord">Nord (Frosty Dark)</option>
-              <option value="cyberpunk">Cyberpunk (Neon)</option>
-              <option value="oneDark">One Dark</option>
-              <option value="light">GitHub Light</option>
-            </select>
-          </div>
-
-          {/* Font Size */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Type size={10} />
-              Font Size
-            </label>
-            <select 
-              value={settings.fontSize} 
-              onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
-              style={{
-                backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-              }}
-            >
-              <option value="12">12px</option>
-              <option value="13">13px</option>
-              <option value="14">14px</option>
-              <option value="16">16px</option>
-              <option value="18">18px</option>
-              <option value="20">20px</option>
-            </select>
-          </div>
-
-          {/* Cursor */}
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
-              <select 
-                value={settings.cursorStyle} 
-                onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
-                style={{
-                  backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-                }}
-              >
-                <option value="block">Block</option>
-                <option value="underline">Underline</option>
-                <option value="bar">Bar</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
-              <label style={{ 
-                fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
-              }}>
-                <input 
-                  type="checkbox" 
-                  checked={settings.cursorBlink}
-                  onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
-                  style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-                />
-                Blink
-              </label>
+          <div 
+            onClick={() => setIsPreferencesCollapsed(!isPreferencesCollapsed)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              userSelect: 'none',
+              padding: '4px 0'
+            }}
+          >
+            <span style={{
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              fontWeight: 600,
+              color: 'var(--color-text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Sliders size={12} />
+              Preferences
+            </span>
+            <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
+              {isPreferencesCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
             </div>
           </div>
+
+          {!isPreferencesCollapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeIn 0.2s ease' }}>
+              {/* Theme */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Palette size={10} />
+                  Theme
+                </label>
+                <select 
+                  value={settings.theme} 
+                  onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                  style={{
+                    backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                  }}
+                >
+                  <option value="dracula">Dracula (Classic)</option>
+                  <option value="nord">Nord (Frosty Dark)</option>
+                  <option value="cyberpunk">Cyberpunk (Neon)</option>
+                  <option value="oneDark">One Dark</option>
+                  <option value="light">GitHub Light</option>
+                </select>
+              </div>
+
+              {/* Font Size */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Type size={10} />
+                  Font Size
+                </label>
+                <select 
+                  value={settings.fontSize} 
+                  onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
+                  style={{
+                    backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                  }}
+                >
+                  <option value="12">12px</option>
+                  <option value="13">13px</option>
+                  <option value="14">14px</option>
+                  <option value="16">16px</option>
+                  <option value="18">18px</option>
+                  <option value="20">20px</option>
+                </select>
+              </div>
+
+              {/* Cursor */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
+                  <select 
+                    value={settings.cursorStyle} 
+                    onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
+                    style={{
+                      backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                    }}
+                  >
+                    <option value="block">Block</option>
+                    <option value="underline">Underline</option>
+                    <option value="bar">Bar</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
+                  <label style={{ 
+                    fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={settings.cursorBlink}
+                      onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
+                      style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                    />
+                    Blink
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Footer with Logout */}
+        <div style={{
+          borderTop: '1px solid var(--color-border)',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.2)'
+        }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px',
+              borderRadius: '8px',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              background: 'rgba(239, 68, 68, 0.05)',
+              color: '#f87171',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'var(--transition-smooth)'
+            }}
+            className="logout-btn"
+            title="Sign out of cterm"
+          >
+            <LogOut size={14} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
@@ -967,7 +1001,8 @@ export default function App() {
         height: '100%',
         backgroundColor: '#0c0d12',
         position: 'relative',
-        padding: '16px'
+        padding: '16px',
+        overflow: 'scroll'
       }}>
         {isSidebarCollapsed && (
           <button 
@@ -994,7 +1029,7 @@ export default function App() {
             className="hover-glow"
             title="Expand Sidebar"
           >
-            <ChevronRight size={14} />
+            <PanelLeftOpen size={14} />
           </button>
         )}
         {activeWorkspace ? (
@@ -1056,6 +1091,12 @@ export default function App() {
         .hover-glow:hover {
           box-shadow: 0 0 10px rgba(124, 77, 255, 0.4);
           background-color: rgba(124, 77, 255, 0.25) !important;
+        }
+        .logout-btn:hover {
+          background-color: rgba(239, 68, 68, 0.15) !important;
+          border-color: rgba(239, 68, 68, 0.4) !important;
+          box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+          color: #ef4444 !important;
         }
         .hover-scale:hover {
           transform: translateY(-2px);

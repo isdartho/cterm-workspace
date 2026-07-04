@@ -2,6 +2,10 @@
 
 A full-stack Node.js and React application featuring real-time, interactive terminal sessions on the frontend using **xterm.js** and **node-pty** on the backend over **WebSockets**, secured with **session-token authentication**.
 
+
+# Screen
+![cTerm-Workspace](media/screenshot.png)
+
 ## Features
 
 - 🖥️ **Real-Time Shell Access**: Run actual system shell sessions (`zsh`/`bash` depending on host OS) directly in your browser.
