@@ -6,7 +6,7 @@ import cors from 'cors';
 import pty from 'node-pty';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import path, { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,6 +14,10 @@ const __dirname = dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static client build files in production
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
 
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
@@ -254,6 +258,14 @@ wss.on('connection', (ws, request, sessionId) => {
       }
     }, 10 * 60 * 1000); // 10 minutes timeout
   });
+});
+
+// Serve index.html for any frontend client-side router requests in production
+app.get('*', (req, res, next) => {
+  if (req.url.startsWith('/api') || req.url.startsWith('/terminals')) {
+    return next();
+  }
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3001;

@@ -7,8 +7,9 @@ import { THEMES } from '../services/TerminalSessionManager';
 
 const BACKEND_WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const isDev = window.location.port !== '';
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || window.location.hostname;
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '3001';
-const BACKEND_WS_HOST = isDev ? `${window.location.hostname}:${BACKEND_PORT}` : window.location.host;
+const BACKEND_WS_HOST = isDev ? `${BACKEND_HOST}:${BACKEND_PORT}` : window.location.host;
 
 export default function TerminalInstance({ 
   sessionId, 

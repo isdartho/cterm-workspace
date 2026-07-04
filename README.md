@@ -53,17 +53,28 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
    to use this just copy the file to .env in the server folder.
 
    For client, `client/env_example` has example configuration:
+   - `VITE_BACKEND_HOST=0.0.0.0`
    - `VITE_BACKEND_PORT=3001`
-   
-   to use this just copy the file to .env in the client folder.
 
+   to use this just copy the file to .env in the client folder.
 
 3. **Start the development servers concurrently**:
    ```bash
    npm run dev
    ```
+   Open your browser to the URL shown by Vite (typically [http://localhost:5173](http://localhost:5173)).
 
-4. Open your browser to the URL shown by Vite (typically [http://localhost:5173](http://localhost:5173)).
+4. **Production Build & Launch**:
+   Compile the frontend assets into production bundles:
+   ```bash
+   npm run build
+   ```
+   Start the production server (which runs the backend API and serves the compiled static client assets concurrently):
+   ```bash
+   npm start
+   ```
+   Navigate your browser to [http://localhost:3001](http://localhost:3001) (or the custom `PORT` set in `server/.env`).
+
 5. Sign in with the credentials configured in `server/.env` (default is **admin / admin**).
 
 ---

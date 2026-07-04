@@ -22,8 +22,9 @@ import PaneLayout from './components/PaneLayout';
 import { sessionManager } from './services/TerminalSessionManager';
 
 const isDev = window.location.port !== '';
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || window.location.hostname;
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '3001';
-const BACKEND_URL = isDev ? `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}` : window.location.origin;
+const BACKEND_URL = isDev ? `${window.location.protocol}//${BACKEND_HOST}:${BACKEND_PORT}` : window.location.origin;
 
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
