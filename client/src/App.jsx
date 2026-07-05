@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   LogOut,
   RefreshCw,
+  ChevronUp,
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
@@ -25,6 +26,25 @@ const isDev = window.location.port !== '';
 const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || window.location.hostname;
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '3001';
 const BACKEND_URL = isDev ? `${window.location.protocol}//${BACKEND_HOST}:${BACKEND_PORT}` : window.location.origin;
+
+const namelist_a = [
+    "Alpha", "Apex", "Astro", "Blaze", "Chaos", "Cosmic", "Cyber", "Dark", 
+    "Doom", "Echo", "Electric", "Elite", "Fatal", "Frost", "Ghost", "Hyper", 
+    "Iron", "Lunar", "Matrix", "Mega", "Mystic", "Neon", "Nova", "Omega", 
+    "Phantom", "Pixel", "Quantum", "Radical", "Rogue", "Shadow", "Solar", 
+    "Sonic", "Spectral", "Static", "Stealth", "Storm", "Toxic", "Turbo", 
+    "Vortex", "Zephyr"
+];
+
+const namelist_b = [
+    "Assassin", "Beast", "Blade", "Bolt", "Cobra", "Crusader", "Cyborg", "Demon", 
+    "Dragon", "Eagle", "Falcon", "Fury", "Glitch", "Hacker", "Hunter", "Hydra", 
+    "Knight", "Laser", "Legend", "Lynx", "Mamba", "Matrix", "Ninja", "Nomad", 
+    "Outlaw", "Panther", "Pharaoh", "Phoenix", "Pulse", "Raven", "Reaper", "Rider", 
+    "Samurai", "Scorpion", "Shark", "Sniper", "Titan", "Viper", "Warlock", "Wolf"
+];
+
+const getMixedName = () => `${namelist_a[Math.floor(Math.random() * namelist_a.length)]} ${namelist_b[Math.floor(Math.random() * namelist_b.length)]}`;
 
 function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -225,10 +245,16 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem('cterm_auth_token'));
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPreferencesCollapsed, setIsPreferencesCollapsed] = useState(true);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
+  const [isWorkspacesLoaded, setIsWorkspacesLoaded] = useState(false);
 
   const handleLogout = () => {
     sessionStorage.removeItem('cterm_auth_token');
     setIsAuthenticated(false);
+    setIsWorkspacesLoaded(false);
+    setWorkspaces([]);
+    setActiveWorkspaceId(null);
   };
 
   // Trigger terminal refit on sidebar transition completion
@@ -238,32 +264,6 @@ export default function App() {
     }, 260); // slightly longer than width transition
     return () => clearTimeout(timer);
   }, [isSidebarCollapsed]);
-
-  const [workspaces, setWorkspaces] = useState(() => {
-    const saved = localStorage.getItem('cterm_workspaces');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.workspaces || [];
-      } catch (e) {
-        console.error('Failed to parse saved workspaces:', e);
-      }
-    }
-    return [];
-  });
-
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => {
-    const saved = localStorage.getItem('cterm_workspaces');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.activeWorkspaceId || null;
-      } catch (e) {
-        console.error('Failed to parse saved activeWorkspaceId:', e);
-      }
-    }
-    return null;
-  });
   
   // Custom workspace renaming state
   const [editingWorkspaceId, setEditingWorkspaceId] = useState(null);
@@ -285,29 +285,60 @@ export default function App() {
     localStorage.setItem('cterm_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Load workspaces from localStorage or initialize
+  // Load workspaces from backend database on login or startup
   useEffect(() => {
-    const loadWorkspaces = async () => {
-      const saved = localStorage.getItem('cterm_workspaces');
-      if (!saved) {
-        // Create initial workspace with a new terminal session
-        await createWorkspace('Default Workspace');
+    if (!isAuthenticated) return;
+    
+    const loadWorkspacesFromBackend = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/workspaces`, {
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('cterm_auth_token') || ''}`
+          }
+        });
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+        if (response.ok) {
+          const data = await response.json();
+          if (data.workspaces && data.workspaces.length > 0) {
+            setWorkspaces(data.workspaces);
+            setActiveWorkspaceId(data.activeWorkspaceId);
+          }
+          setIsWorkspacesLoaded(true);
+        }
+      } catch (e) {
+        console.error('Failed to fetch workspaces from backend:', e);
       }
     };
-    loadWorkspaces();
-  }, []);
+    loadWorkspacesFromBackend();
+  }, [isAuthenticated]);
 
-  // Save workspaces to localStorage whenever they change
+  // Save workspaces to backend database whenever changes occur
   useEffect(() => {
-    if (workspaces.length > 0) {
-      localStorage.setItem('cterm_workspaces', JSON.stringify({
-        workspaces,
-        activeWorkspaceId
-      }));
-    } else {
-      localStorage.removeItem('cterm_workspaces');
-    }
-  }, [workspaces, activeWorkspaceId]);
+    if (!isAuthenticated || !isWorkspacesLoaded) return;
+
+    const saveWorkspacesToBackend = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/workspaces`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionStorage.getItem('cterm_auth_token') || ''}`
+          },
+          body: JSON.stringify({ workspaces, activeWorkspaceId })
+        });
+        if (response.status === 401) {
+          handleLogout();
+        }
+      } catch (e) {
+        console.error('Failed to save workspaces to backend:', e);
+      }
+    };
+
+    saveWorkspacesToBackend();
+  }, [workspaces, activeWorkspaceId, isAuthenticated, isWorkspacesLoaded]);
 
   // Get active workspace node structure
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
@@ -371,7 +402,7 @@ export default function App() {
         id: genId('pane'),
         type: 'terminal',
         sessionId: sessionId,
-        title: 'Terminal'
+        title: getMixedName()
       },
       activeSessionId: sessionId
     };
@@ -457,8 +488,8 @@ export default function App() {
           direction,
           sizes: [50, 50],
           children: [
-            { id: genId('pane'), type: 'terminal', sessionId: node.sessionId, title: node.title || 'Terminal' },
-            { id: genId('pane'), type: 'terminal', sessionId: newSessionId, title: 'Terminal Split' }
+            { id: genId('pane'), type: 'terminal', sessionId: node.sessionId, title: node.title || getMixedName() },
+            { id: genId('pane'), type: 'terminal', sessionId: newSessionId, title: getMixedName() }
           ]
         };
       }
@@ -719,7 +750,8 @@ export default function App() {
               onClick={() => createWorkspace()}
               style={{
                 background: 'var(--color-primary-glow)',
-                border: '1px solid var(--color-border-active)',
+                border: '1px solid',
+                borderColor: workspaces.length === 0 ? 'var(--color-primary)' : 'var(--color-border-active)',
                 borderRadius: '6px',
                 padding: '4px 8px',
                 color: '#c084fc',
@@ -729,7 +761,9 @@ export default function App() {
                 fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'var(--transition-smooth)'
+                transition: 'var(--transition-smooth)',
+                boxShadow: workspaces.length === 0 ? '0 0 15px var(--color-primary-glow)' : 'none',
+                animation: workspaces.length === 0 ? 'pulse-glow 2s infinite' : 'none'
               }}
               className="hover-glow"
             >
@@ -877,7 +911,7 @@ export default function App() {
               Preferences
             </span>
             <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-              {isPreferencesCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+              {isPreferencesCollapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </div>
           </div>
 
@@ -1109,6 +1143,20 @@ export default function App() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes pulse-glow {
+          0% {
+            box-shadow: 0 0 5px rgba(167, 139, 250, 0.4);
+            border-color: var(--color-border-active);
+          }
+          50% {
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.8), 0 0 5px var(--color-primary);
+            border-color: var(--color-primary);
+          }
+          100% {
+            box-shadow: 0 0 5px rgba(167, 139, 250, 0.4);
+            border-color: var(--color-border-active);
+          }
         }
       `}</style>
     </div>
