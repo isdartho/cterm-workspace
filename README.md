@@ -2,10 +2,13 @@
 
 A full-stack Node.js and React application featuring real-time, interactive terminal sessions on the frontend using **xterm.js** and **node-pty** on the backend over **WebSockets**, secured with **session-token authentication**.
 
+cTerm provides an ideal sandbox dashboard, making it highly effective for running, monitoring, and debugging **multiple concurrent autonomous AI agents** in side-by-side terminal sessions.
+
 ![cTerm-Workspace](media/screenshot.png)
 
 ## Features
 
+- 🤖 **AI Agent Orchestration**: Run, monitor, and interact with multiple autonomous AI agents simultaneously in side-by-side terminal panes.
 - 🖥️ **Real-Time Shell Access**: Run actual system shell sessions (`zsh`/`bash` depending on host OS) directly in your browser.
 - 🔐 **Token-Based Authentication**: Secure access protected by custom credentials set in environment variables (`AUTH_USERNAME`, `AUTH_PASSWORD`).
 - 🚪 **Sleek Glassmorphic Login**: A premium login card with radial back-gradient, input glow triggers, and active sign-in alerts.

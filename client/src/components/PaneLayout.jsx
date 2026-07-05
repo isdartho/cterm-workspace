@@ -15,6 +15,7 @@ export default function PaneLayout({
 }) {
   const containerRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
 
   // --- Rendering split pane node ---
   if (node.type === 'split') {
@@ -137,15 +138,23 @@ export default function PaneLayout({
 
   const handleDragEnter = (e) => {
     e.preventDefault();
-    setIsDragOver(true);
+    dragCounter.current += 1;
+    if (dragCounter.current === 1) {
+      setIsDragOver(true);
+    }
   };
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragOver(false);
+    }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
+    dragCounter.current = 0;
     setIsDragOver(false);
     
     const srcSessionId = e.dataTransfer.getData('text/plain');
