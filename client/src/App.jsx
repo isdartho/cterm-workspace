@@ -998,8 +998,9 @@ export default function App() {
           padding: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
-          backgroundColor: 'rgba(0,0,0,0.15)'
+          gap: isPreferencesCollapsed ? '0px' : '12px',
+          backgroundColor: 'rgba(0,0,0,0.15)',
+          transition: 'gap 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
           <div 
             onClick={() => setIsPreferencesCollapsed(!isPreferencesCollapsed)}
@@ -1025,89 +1026,102 @@ export default function App() {
               <Sliders size={12} />
               Preferences
             </span>
-            <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-              {isPreferencesCollapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <div style={{ 
+              color: 'var(--color-text-muted)', 
+              display: 'flex', 
+              alignItems: 'center',
+              transition: 'transform 0.3s ease',
+              transform: isPreferencesCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'
+            }}>
+              <ChevronUp size={14} />
             </div>
           </div>
 
-          {!isPreferencesCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeIn 0.2s ease' }}>
-              {/* Theme */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Palette size={10} />
-                  Theme
-                </label>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '14px', 
+            maxHeight: isPreferencesCollapsed ? '0px' : '400px',
+            opacity: isPreferencesCollapsed ? 0 : 1,
+            overflow: 'hidden',
+            transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.3s ease',
+            paddingTop: isPreferencesCollapsed ? '0px' : '6px'
+          }}>
+            {/* Theme */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Palette size={10} />
+                Theme
+              </label>
+              <select 
+                value={settings.theme} 
+                onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                style={{
+                  backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                }}
+              >
+                <option value="dracula">Dracula (Classic)</option>
+                <option value="nord">Nord (Frosty Dark)</option>
+                <option value="cyberpunk">Cyberpunk (Neon)</option>
+                <option value="oneDark">One Dark</option>
+                <option value="light">GitHub Light</option>
+              </select>
+            </div>
+
+            {/* Font Size */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Type size={10} />
+                Font Size
+              </label>
+              <select 
+                value={settings.fontSize} 
+                onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
+                style={{
+                  backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                }}
+              >
+                <option value="12">12px</option>
+                <option value="13">13px</option>
+                <option value="14">14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+              </select>
+            </div>
+
+            {/* Cursor */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
                 <select 
-                  value={settings.theme} 
-                  onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                  value={settings.cursorStyle} 
+                  onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
                   style={{
                     backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
                   }}
                 >
-                  <option value="dracula">Dracula (Classic)</option>
-                  <option value="nord">Nord (Frosty Dark)</option>
-                  <option value="cyberpunk">Cyberpunk (Neon)</option>
-                  <option value="oneDark">One Dark</option>
-                  <option value="light">GitHub Light</option>
+                  <option value="block">Block</option>
+                  <option value="underline">Underline</option>
+                  <option value="bar">Bar</option>
                 </select>
               </div>
 
-              {/* Font Size */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Type size={10} />
-                  Font Size
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
+                <label style={{ 
+                  fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
+                }}>
+                  <input 
+                    type="checkbox" 
+                    checked={settings.cursorBlink}
+                    onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
+                    style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                  />
+                  Blink
                 </label>
-                <select 
-                  value={settings.fontSize} 
-                  onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
-                  style={{
-                    backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-                  }}
-                >
-                  <option value="12">12px</option>
-                  <option value="13">13px</option>
-                  <option value="14">14px</option>
-                  <option value="16">16px</option>
-                  <option value="18">18px</option>
-                  <option value="20">20px</option>
-                </select>
-              </div>
-
-              {/* Cursor */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                  <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
-                  <select 
-                    value={settings.cursorStyle} 
-                    onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
-                    style={{
-                      backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-                    }}
-                  >
-                    <option value="block">Block</option>
-                    <option value="underline">Underline</option>
-                    <option value="bar">Bar</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
-                  <label style={{ 
-                    fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      checked={settings.cursorBlink}
-                      onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
-                      style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-                    />
-                    Blink
-                  </label>
-                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Sidebar Footer with Logout */}
