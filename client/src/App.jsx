@@ -269,6 +269,26 @@ export default function App() {
   const [editingWorkspaceId, setEditingWorkspaceId] = useState(null);
   const [editingWorkspaceText, setEditingWorkspaceText] = useState('');
 
+  // Expand/collapse state for workspaces in the sidebar
+  const [expandedWorkspaceIds, setExpandedWorkspaceIds] = useState({});
+  
+  const toggleWorkspaceExpand = (workspaceId, e) => {
+    e.stopPropagation();
+    setExpandedWorkspaceIds(prev => ({
+      ...prev,
+      [workspaceId]: !prev[workspaceId]
+    }));
+  };
+
+  const countTerminals = (node) => {
+    if (!node) return 0;
+    if (node.type === 'terminal') return 1;
+    if (node.type === 'split' && node.children) {
+      return countTerminals(node.children[0]) + countTerminals(node.children[1]);
+    }
+    return 0;
+  };
+
   // Global settings
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('cterm_settings');
@@ -303,7 +323,8 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           if (data.workspaces && data.workspaces.length > 0) {
-            setWorkspaces(data.workspaces);
+            const migrated = data.workspaces.map(w => w.createdAt ? w : { ...w, createdAt: new Date().toISOString() });
+            setWorkspaces(migrated);
             setActiveWorkspaceId(data.activeWorkspaceId);
           }
           setIsWorkspacesLoaded(true);
@@ -404,7 +425,8 @@ export default function App() {
         sessionId: sessionId,
         title: getMixedName()
       },
-      activeSessionId: sessionId
+      activeSessionId: sessionId,
+      createdAt: new Date().toISOString()
     };
 
     setWorkspaces(prev => [...prev, newWorkspace]);
@@ -579,13 +601,31 @@ export default function App() {
 
   // 4. Swap Panes (Drag & Drop)
   const handleSwap = (sourceSessionId, targetSessionId) => {
+    let sourceTitle = '';
+    let targetTitle = '';
+
+    const findTitles = (node) => {
+      if (!node) return;
+      if (node.type === 'terminal') {
+        if (node.sessionId === sourceSessionId) sourceTitle = node.title;
+        if (node.sessionId === targetSessionId) targetTitle = node.title;
+      } else if (node.type === 'split' && node.children) {
+        findTitles(node.children[0]);
+        findTitles(node.children[1]);
+      }
+    };
+
+    if (activeWorkspace && activeWorkspace.layout) {
+      findTitles(activeWorkspace.layout);
+    }
+
     const swapMutator = (node) => {
       if (node.type === 'terminal') {
         if (node.sessionId === sourceSessionId) {
-          return { ...node, sessionId: targetSessionId };
+          return { ...node, sessionId: targetSessionId, title: targetTitle };
         }
         if (node.sessionId === targetSessionId) {
-          return { ...node, sessionId: sourceSessionId };
+          return { ...node, sessionId: sourceSessionId, title: sourceTitle };
         }
         return node;
       }
@@ -776,6 +816,7 @@ export default function App() {
             {workspaces.map((workspace) => {
               const isActive = workspace.id === activeWorkspaceId;
               const isEditing = editingWorkspaceId === workspace.id;
+              const isExpanded = !!expandedWorkspaceIds[workspace.id];
 
               return (
                 <div 
@@ -786,90 +827,164 @@ export default function App() {
                     backgroundColor: isActive ? 'var(--bg-active-tab)' : 'transparent',
                     border: '1px solid',
                     borderColor: isActive ? 'var(--color-border-active)' : 'transparent',
-                    padding: '10px 12px',
                     cursor: 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    flexDirection: 'column',
                     transition: 'var(--transition-smooth)',
                     boxShadow: isActive ? '0 4px 12px rgba(0, 0, 0, 0.2)' : 'none'
                   }}
                   onClick={() => !isEditing && setActiveWorkspaceId(workspace.id)}
                   className="tab-item"
                 >
-                  {isEditing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
-                      <input 
-                        type="text" 
-                        value={editingWorkspaceText}
-                        onChange={(e) => setEditingWorkspaceText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveRenameWorkspace(workspace.id);
-                          if (e.key === 'Escape') setEditingWorkspaceId(null);
-                        }}
-                        autoFocus
-                        style={{
-                          flex: 1,
-                          background: '#090a0f',
-                          border: '1px solid var(--color-primary)',
-                          borderRadius: '4px',
-                          padding: '2px 6px',
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          outline: 'none',
-                          fontFamily: 'var(--font-sans)'
-                        }}
-                      />
-                      <button 
-                        onClick={() => saveRenameWorkspace(workspace.id)}
-                        style={{
-                          background: 'none', border: 'none', color: '#27c93f', cursor: 'pointer', display: 'flex', alignItems: 'center'
-                        }}
-                      >
-                        <Check size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div 
-                        style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', flex: 1 }}
-                        onDoubleClick={(e) => startRenameWorkspace(workspace.id, workspace.name, e)}
-                      >
-                        <span style={{
-                          fontSize: '13px',
-                          fontWeight: isActive ? 600 : 400,
-                          color: isActive ? '#ffffff' : 'var(--color-text-main)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                          {workspace.name}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    width: '100%'
+                  }}>
+                    {isEditing ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="text" 
+                          value={editingWorkspaceText}
+                          onChange={(e) => setEditingWorkspaceText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveRenameWorkspace(workspace.id);
+                            if (e.key === 'Escape') setEditingWorkspaceId(null);
+                          }}
+                          autoFocus
+                          style={{
+                            flex: 1,
+                            background: '#090a0f',
+                            border: '1px solid var(--color-primary)',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            color: '#ffffff',
+                            fontSize: '13px',
+                            outline: 'none',
+                            fontFamily: 'var(--font-sans)'
+                          }}
+                        />
+                        <button 
+                          onClick={() => saveRenameWorkspace(workspace.id)}
+                          style={{
+                            background: 'none', border: 'none', color: '#27c93f', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                          }}
+                        >
+                          <Check size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}>
+                          <button 
+                            onClick={(e) => toggleWorkspaceExpand(workspace.id, e)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0.8,
+                              transition: 'transform 0.2s ease',
+                              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+                            }}
+                            title={isExpanded ? "Collapse details" : "Expand details"}
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                          <div 
+                            style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', flex: 1 }}
+                            onDoubleClick={(e) => startRenameWorkspace(workspace.id, workspace.name, e)}
+                          >
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: isActive ? 600 : 400,
+                              color: isActive ? '#ffffff' : 'var(--color-text-main)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>
+                              {workspace.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} className="tab-actions">
+                          <button 
+                            onClick={(e) => startRenameWorkspace(workspace.id, workspace.name, e)}
+                            style={{
+                              background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6
+                            }}
+                            className="hover-icon"
+                            title="Rename workspace"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button 
+                            onClick={(e) => closeWorkspace(workspace.id, e)}
+                            style={{
+                              background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6
+                            }}
+                            className="hover-icon"
+                            title="Close workspace"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {isExpanded && !isEditing && (
+                    <div 
+                      style={{
+                        padding: '0px 12px 10px 32px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        fontSize: '11px',
+                        color: 'var(--color-text-muted)',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.03)',
+                        paddingTop: '8px',
+                        cursor: 'default',
+                        animation: 'fadeIn 0.2s ease-out'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Created:</span>
+                        <span style={{ color: 'var(--color-text-main)', fontWeight: 500 }}>
+                          {workspace.createdAt 
+                            ? new Date(workspace.createdAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'N/A'}
                         </span>
                       </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} className="tab-actions">
-                        <button 
-                          onClick={(e) => startRenameWorkspace(workspace.id, workspace.name, e)}
-                          style={{
-                            background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6
-                          }}
-                          className="hover-icon"
-                          title="Rename workspace"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button 
-                          onClick={(e) => closeWorkspace(workspace.id, e)}
-                          style={{
-                            background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6
-                          }}
-                          className="hover-icon"
-                          title="Close workspace"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Active Terminals:</span>
+                        <span style={{
+                          color: '#c084fc',
+                          fontWeight: 600,
+                          backgroundColor: 'rgba(192, 132, 252, 0.12)',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          fontSize: '10px'
+                        }}>
+                          {countTerminals(workspace.layout)}
+                        </span>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               );
@@ -883,8 +998,9 @@ export default function App() {
           padding: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
-          backgroundColor: 'rgba(0,0,0,0.15)'
+          gap: isPreferencesCollapsed ? '0px' : '12px',
+          backgroundColor: 'rgba(0,0,0,0.15)',
+          transition: 'gap 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
           <div 
             onClick={() => setIsPreferencesCollapsed(!isPreferencesCollapsed)}
@@ -910,89 +1026,102 @@ export default function App() {
               <Sliders size={12} />
               Preferences
             </span>
-            <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-              {isPreferencesCollapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <div style={{ 
+              color: 'var(--color-text-muted)', 
+              display: 'flex', 
+              alignItems: 'center',
+              transition: 'transform 0.3s ease',
+              transform: isPreferencesCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'
+            }}>
+              <ChevronUp size={14} />
             </div>
           </div>
 
-          {!isPreferencesCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeIn 0.2s ease' }}>
-              {/* Theme */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Palette size={10} />
-                  Theme
-                </label>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '14px', 
+            maxHeight: isPreferencesCollapsed ? '0px' : '400px',
+            opacity: isPreferencesCollapsed ? 0 : 1,
+            overflow: 'hidden',
+            transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.3s ease',
+            paddingTop: isPreferencesCollapsed ? '0px' : '6px'
+          }}>
+            {/* Theme */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Palette size={10} />
+                Theme
+              </label>
+              <select 
+                value={settings.theme} 
+                onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                style={{
+                  backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                }}
+              >
+                <option value="dracula">Dracula (Classic)</option>
+                <option value="nord">Nord (Frosty Dark)</option>
+                <option value="cyberpunk">Cyberpunk (Neon)</option>
+                <option value="oneDark">One Dark</option>
+                <option value="light">GitHub Light</option>
+              </select>
+            </div>
+
+            {/* Font Size */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Type size={10} />
+                Font Size
+              </label>
+              <select 
+                value={settings.fontSize} 
+                onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
+                style={{
+                  backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                }}
+              >
+                <option value="12">12px</option>
+                <option value="13">13px</option>
+                <option value="14">14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+              </select>
+            </div>
+
+            {/* Cursor */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
                 <select 
-                  value={settings.theme} 
-                  onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                  value={settings.cursorStyle} 
+                  onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
                   style={{
                     backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
                   }}
                 >
-                  <option value="dracula">Dracula (Classic)</option>
-                  <option value="nord">Nord (Frosty Dark)</option>
-                  <option value="cyberpunk">Cyberpunk (Neon)</option>
-                  <option value="oneDark">One Dark</option>
-                  <option value="light">GitHub Light</option>
+                  <option value="block">Block</option>
+                  <option value="underline">Underline</option>
+                  <option value="bar">Bar</option>
                 </select>
               </div>
 
-              {/* Font Size */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Type size={10} />
-                  Font Size
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
+                <label style={{ 
+                  fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
+                }}>
+                  <input 
+                    type="checkbox" 
+                    checked={settings.cursorBlink}
+                    onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
+                    style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                  />
+                  Blink
                 </label>
-                <select 
-                  value={settings.fontSize} 
-                  onChange={(e) => setSettings({...settings, fontSize: parseInt(e.target.value)})}
-                  style={{
-                    backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-                  }}
-                >
-                  <option value="12">12px</option>
-                  <option value="13">13px</option>
-                  <option value="14">14px</option>
-                  <option value="16">16px</option>
-                  <option value="18">18px</option>
-                  <option value="20">20px</option>
-                </select>
-              </div>
-
-              {/* Cursor */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                  <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Cursor Style</label>
-                  <select 
-                    value={settings.cursorStyle} 
-                    onChange={(e) => setSettings({...settings, cursorStyle: e.target.value})}
-                    style={{
-                      backgroundColor: '#090a0f', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '6px 8px', color: 'var(--color-text-main)', fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-                    }}
-                  >
-                    <option value="block">Block</option>
-                    <option value="underline">Underline</option>
-                    <option value="bar">Bar</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '6px' }}>
-                  <label style={{ 
-                    fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none'
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      checked={settings.cursorBlink}
-                      onChange={(e) => setSettings({...settings, cursorBlink: e.target.checked})}
-                      style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-                    />
-                    Blink
-                  </label>
-                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Sidebar Footer with Logout */}
