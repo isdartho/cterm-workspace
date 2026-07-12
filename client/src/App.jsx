@@ -274,10 +274,65 @@ export default function App() {
   const [createWorkspaceName, setCreateWorkspaceName] = useState('New Workspace');
   const [createWorkspaceServer, setCreateWorkspaceServer] = useState('');
   const [createWorkspaceToken, setCreateWorkspaceToken] = useState('');
+  const [createWorkspaceError, setCreateWorkspaceError] = useState('');
+  const [createWorkspaceLoading, setCreateWorkspaceLoading] = useState(false);
+
+  const validateServerToken = async (serverUrl, token) => {
+    const url = serverUrl ? serverUrl.replace(/\/$/, '') : BACKEND_URL;
+    const authHeader = token || sessionStorage.getItem('cterm_auth_token') || '';
+    
+    try {
+      const response = await fetch(`${url}/api/terminals`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authHeader}`
+        }
+      });
+      if (response.ok) {
+        return { valid: true };
+      }
+      if (response.status === 401) {
+        return { valid: false, error: 'Invalid API secret / token.' };
+      }
+      return { valid: false, error: `Server returned status ${response.status}.` };
+    } catch (e) {
+      return { valid: false, error: 'Could not connect to target server. Check URL and CORS settings.' };
+    }
+  };
 
   const handleConfirmCreateWorkspace = async () => {
-    await createWorkspace(createWorkspaceName.trim(), createWorkspaceServer.trim(), createWorkspaceToken.trim());
+    setCreateWorkspaceError('');
+    setCreateWorkspaceLoading(true);
+    
+    const name = createWorkspaceName.trim();
+    const serverUrl = createWorkspaceServer.trim();
+    const token = createWorkspaceToken.trim();
+
+    if (!name) {
+      setCreateWorkspaceError('Workspace name is required.');
+      setCreateWorkspaceLoading(false);
+      return;
+    }
+
+    const validation = await validateServerToken(serverUrl, token);
+    if (!validation.valid) {
+      setCreateWorkspaceError(validation.error);
+      setCreateWorkspaceLoading(false);
+      return;
+    }
+
+    await createWorkspace(name, serverUrl, token);
     setIsCreateModalOpen(false);
+    setCreateWorkspaceLoading(false);
+    setCreateWorkspaceName('New Workspace');
+    setCreateWorkspaceServer('');
+    setCreateWorkspaceToken('');
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setCreateWorkspaceError('');
+    setCreateWorkspaceLoading(false);
     setCreateWorkspaceName('New Workspace');
     setCreateWorkspaceServer('');
     setCreateWorkspaceToken('');
@@ -1310,12 +1365,27 @@ export default function App() {
                 Create Workspace
               </h3>
               <button 
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={handleCloseCreateModal}
+                disabled={createWorkspaceLoading}
                 style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
               >
                 <X size={16} />
               </button>
             </div>
+
+            {createWorkspaceError && (
+              <div style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                color: '#f87171',
+                fontSize: '12px',
+                lineHeight: '1.4'
+              }}>
+                {createWorkspaceError}
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Workspace Name</label>
@@ -1325,6 +1395,7 @@ export default function App() {
                 onChange={(e) => setCreateWorkspaceName(e.target.value)}
                 placeholder="e.g. My Workspace"
                 autoFocus
+                disabled={createWorkspaceLoading}
                 style={{
                   background: '#090a0f',
                   border: '1px solid var(--color-border)',
@@ -1333,7 +1404,8 @@ export default function App() {
                   color: '#ffffff',
                   fontSize: '13px',
                   outline: 'none',
-                  fontFamily: 'var(--font-sans)'
+                  fontFamily: 'var(--font-sans)',
+                  opacity: createWorkspaceLoading ? 0.6 : 1
                 }}
               />
             </div>
@@ -1345,6 +1417,7 @@ export default function App() {
                 value={createWorkspaceServer}
                 onChange={(e) => setCreateWorkspaceServer(e.target.value)}
                 placeholder="http://localhost:3001"
+                disabled={createWorkspaceLoading}
                 style={{
                   background: '#090a0f',
                   border: '1px solid var(--color-border)',
@@ -1353,7 +1426,8 @@ export default function App() {
                   color: '#ffffff',
                   fontSize: '13px',
                   outline: 'none',
-                  fontFamily: 'var(--font-sans)'
+                  fontFamily: 'var(--font-sans)',
+                  opacity: createWorkspaceLoading ? 0.6 : 1
                 }}
               />
             </div>
@@ -1365,6 +1439,7 @@ export default function App() {
                 value={createWorkspaceToken}
                 onChange={(e) => setCreateWorkspaceToken(e.target.value)}
                 placeholder="Token secret"
+                disabled={createWorkspaceLoading}
                 style={{
                   background: '#090a0f',
                   border: '1px solid var(--color-border)',
@@ -1373,14 +1448,16 @@ export default function App() {
                   color: '#ffffff',
                   fontSize: '13px',
                   outline: 'none',
-                  fontFamily: 'var(--font-sans)'
+                  fontFamily: 'var(--font-sans)',
+                  opacity: createWorkspaceLoading ? 0.6 : 1
                 }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
               <button 
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={handleCloseCreateModal}
+                disabled={createWorkspaceLoading}
                 style={{
                   background: 'none',
                   border: '1px solid var(--color-border)',
@@ -1388,26 +1465,31 @@ export default function App() {
                   padding: '6px 14px',
                   color: 'var(--color-text-muted)',
                   fontSize: '12px',
-                  cursor: 'pointer'
+                  cursor: createWorkspaceLoading ? 'not-allowed' : 'pointer',
+                  opacity: createWorkspaceLoading ? 0.6 : 1
                 }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleConfirmCreateWorkspace}
+                disabled={createWorkspaceLoading}
                 style={{
-                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a78bfa 100%)',
+                  background: createWorkspaceLoading 
+                    ? 'var(--color-border)' 
+                    : 'linear-gradient(135deg, var(--color-primary) 0%, #a78bfa 100%)',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '6px 14px',
                   color: '#ffffff',
                   fontSize: '12px',
                   fontWeight: 600,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(124, 77, 255, 0.4)'
+                  cursor: createWorkspaceLoading ? 'not-allowed' : 'pointer',
+                  boxShadow: createWorkspaceLoading ? 'none' : '0 4px 15px rgba(124, 77, 255, 0.4)',
+                  opacity: createWorkspaceLoading ? 0.8 : 1
                 }}
               >
-                Create
+                {createWorkspaceLoading ? 'Validating...' : 'Create'}
               </button>
             </div>
           </div>
