@@ -11,7 +11,9 @@ export default function PaneLayout({
   onResize, 
   onSwap,
   isSinglePane,
-  onRenamePane
+  onRenamePane,
+  terminalServer,
+  terminalServerToken
 }) {
   const containerRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -84,6 +86,8 @@ export default function PaneLayout({
             onSwap={onSwap}
             onRenamePane={onRenamePane}
             isSinglePane={false}
+            terminalServer={terminalServer}
+            terminalServerToken={terminalServerToken}
           />
         </div>
 
@@ -118,6 +122,8 @@ export default function PaneLayout({
             onSwap={onSwap}
             onRenamePane={onRenamePane}
             isSinglePane={false}
+            terminalServer={terminalServer}
+            terminalServerToken={terminalServerToken}
           />
         </div>
 
@@ -189,6 +195,8 @@ export default function PaneLayout({
         onSetActive={onSetActive}
         title={node.title || 'Terminal'}
         onRename={(newTitle) => onRenamePane(node.id, newTitle)}
+        terminalServer={terminalServer}
+        terminalServerToken={terminalServerToken}
       />
 
       {/* Drag-over indicator overlay */}

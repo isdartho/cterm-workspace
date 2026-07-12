@@ -269,6 +269,20 @@ export default function App() {
   const [editingWorkspaceId, setEditingWorkspaceId] = useState(null);
   const [editingWorkspaceText, setEditingWorkspaceText] = useState('');
 
+  // Workspace creation modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createWorkspaceName, setCreateWorkspaceName] = useState('New Workspace');
+  const [createWorkspaceServer, setCreateWorkspaceServer] = useState('');
+  const [createWorkspaceToken, setCreateWorkspaceToken] = useState('');
+
+  const handleConfirmCreateWorkspace = async () => {
+    await createWorkspace(createWorkspaceName.trim(), createWorkspaceServer.trim(), createWorkspaceToken.trim());
+    setIsCreateModalOpen(false);
+    setCreateWorkspaceName('New Workspace');
+    setCreateWorkspaceServer('');
+    setCreateWorkspaceToken('');
+  };
+
   // Expand/collapse state for workspaces in the sidebar
   const [expandedWorkspaceIds, setExpandedWorkspaceIds] = useState({});
   
@@ -366,17 +380,20 @@ export default function App() {
 
   // --- Backend API Integration ---
   
-  const spawnBackendSession = async () => {
+  const spawnBackendSession = async (targetServerUrl, targetServerToken) => {
+    const serverUrl = targetServerUrl || BACKEND_URL;
+    const token = targetServerToken || sessionStorage.getItem('cterm_auth_token') || '';
+    
     try {
-      const response = await fetch(`${BACKEND_URL}/api/terminals`, {
+      const response = await fetch(`${serverUrl}/api/terminals`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('cterm_auth_token') || ''}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ cols: 80, rows: 24 })
       });
-      if (response.status === 401) {
+      if (response.status === 401 && !targetServerUrl) {
         handleLogout();
         return genId('fallback-session');
       }
@@ -391,18 +408,21 @@ export default function App() {
     return genId('fallback-session');
   };
 
-  const terminateBackendSession = async (sessionId) => {
+  const terminateBackendSession = async (sessionId, targetServerUrl, targetServerToken) => {
     // Clean up local cache
     sessionManager.closeSession(sessionId);
     // Terminate on backend
+    const serverUrl = targetServerUrl || BACKEND_URL;
+    const token = targetServerToken || sessionStorage.getItem('cterm_auth_token') || '';
+    
     try {
-      const response = await fetch(`${BACKEND_URL}/api/terminals/${sessionId}`, {
+      const response = await fetch(`${serverUrl}/api/terminals/${sessionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${sessionStorage.getItem('cterm_auth_token') || ''}`
+          'Authorization': `Bearer ${token}`
         }
       });
-      if (response.status === 401) {
+      if (response.status === 401 && !targetServerUrl) {
         handleLogout();
       }
     } catch (e) {
@@ -412,13 +432,15 @@ export default function App() {
 
   // --- Workspace Management ---
 
-  const createWorkspace = async (name = 'New Workspace') => {
-    const sessionId = await spawnBackendSession();
+  const createWorkspace = async (name = 'New Workspace', serverUrl = '', token = '') => {
+    const sessionId = await spawnBackendSession(serverUrl, token);
     const workspaceId = genId('ws');
     
     const newWorkspace = {
       id: workspaceId,
       name,
+      terminalServer: serverUrl,
+      terminalServerToken: token,
       layout: {
         id: genId('pane'),
         type: 'terminal',
@@ -451,7 +473,7 @@ export default function App() {
       traverse(workspaceToClose.layout);
       
       // Terminate all processes
-      sessionIds.forEach(id => terminateBackendSession(id));
+      sessionIds.forEach(id => terminateBackendSession(id, workspaceToClose.terminalServer, workspaceToClose.terminalServerToken));
     }
 
     setWorkspaces(prev => {
@@ -500,7 +522,10 @@ export default function App() {
 
   // 1. Split Pane
   const handleSplit = async (targetPaneId, direction) => {
-    const newSessionId = await spawnBackendSession();
+    const ws = activeWorkspace;
+    const serverUrl = ws ? ws.terminalServer : null;
+    const serverToken = ws ? ws.terminalServerToken : null;
+    const newSessionId = await spawnBackendSession(serverUrl, serverToken);
     
     const splitMutator = (node) => {
       if (node.type === 'terminal' && node.id === targetPaneId) {
@@ -533,7 +558,10 @@ export default function App() {
   // 2. Close Pane
   const handleClosePane = async (targetPaneId, sessionId) => {
     // Terminate backend process
-    await terminateBackendSession(sessionId);
+    const ws = activeWorkspace;
+    const serverUrl = ws ? ws.terminalServer : null;
+    const serverToken = ws ? ws.terminalServerToken : null;
+    await terminateBackendSession(sessionId, serverUrl, serverToken);
 
     const closeMutator = (node) => {
       if (node.id === targetPaneId) return null; // shouldn't happen unless root
@@ -787,7 +815,7 @@ export default function App() {
             </span>
             
             <button 
-              onClick={() => createWorkspace()}
+              onClick={() => setIsCreateModalOpen(true)}
               style={{
                 background: 'var(--color-primary-glow)',
                 border: '1px solid',
@@ -969,6 +997,22 @@ export default function App() {
                                 minute: '2-digit'
                               })
                             : 'N/A'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Target Server:</span>
+                        <span 
+                          style={{ 
+                            color: 'var(--color-text-main)', 
+                            fontWeight: 500,
+                            maxWidth: '140px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }} 
+                          title={workspace.terminalServer || 'Default (Local)'}
+                        >
+                          {workspace.terminalServer || 'Default (Local)'}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1208,6 +1252,8 @@ export default function App() {
               onClosePane={handleClosePane}
               onResize={handleResize}
               onSwap={handleSwap}
+              terminalServer={activeWorkspace.terminalServer}
+              terminalServerToken={activeWorkspace.terminalServerToken}
               onRenamePane={handleRenamePane}
               isSinglePane={activeWorkspace.layout.type === 'terminal'}
             />
@@ -1220,7 +1266,7 @@ export default function App() {
             <Activity size={48} className="text-primary animate-pulse" />
             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: '#ffffff' }}>No active workspaces</h3>
             <button 
-              onClick={() => createWorkspace()}
+              onClick={() => setIsCreateModalOpen(true)}
               style={{
                 background: 'linear-gradient(135deg, var(--color-primary) 0%, #a78bfa 100%)', border: 'none', borderRadius: '8px', padding: '10px 20px', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 15px rgba(124, 77, 255, 0.4)', transition: 'var(--transition-smooth)'
               }}
@@ -1231,6 +1277,142 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {isCreateModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(9, 10, 15, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'fadeIn 0.25s ease-out'
+        }}>
+          <div style={{
+            background: 'rgba(18, 20, 30, 0.85)',
+            border: '1px solid var(--color-border-active)',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '400px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px var(--color-primary-glow)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: '#ffffff', margin: 0 }}>
+                Create Workspace
+              </h3>
+              <button 
+                onClick={() => setIsCreateModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Workspace Name</label>
+              <input 
+                type="text" 
+                value={createWorkspaceName}
+                onChange={(e) => setCreateWorkspaceName(e.target.value)}
+                placeholder="e.g. My Workspace"
+                autoFocus
+                style={{
+                  background: '#090a0f',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  outline: 'none',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Terminal Server URL (Optional)</label>
+              <input 
+                type="text" 
+                value={createWorkspaceServer}
+                onChange={(e) => setCreateWorkspaceServer(e.target.value)}
+                placeholder="http://localhost:3001"
+                style={{
+                  background: '#090a0f',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  outline: 'none',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Server Secret / Token (Optional)</label>
+              <input 
+                type="password" 
+                value={createWorkspaceToken}
+                onChange={(e) => setCreateWorkspaceToken(e.target.value)}
+                placeholder="Token secret"
+                style={{
+                  background: '#090a0f',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  outline: 'none',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+              <button 
+                onClick={() => setIsCreateModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleConfirmCreateWorkspace}
+                style={{
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a78bfa 100%)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(124, 77, 255, 0.4)'
+                }}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Styled JSX */}
       <style>{`
