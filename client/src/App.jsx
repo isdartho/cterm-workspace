@@ -17,7 +17,9 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Server,
+  Monitor
 } from 'lucide-react';
 import PaneLayout from './components/PaneLayout';
 import { sessionManager } from './services/TerminalSessionManager';
@@ -340,6 +342,27 @@ export default function App() {
 
   // Expand/collapse state for workspaces in the sidebar
   const [expandedWorkspaceIds, setExpandedWorkspaceIds] = useState({});
+
+  // Workspace deletion confirmation state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [workspaceToDeleteId, setWorkspaceToDeleteId] = useState(null);
+  const [workspaceToDeleteName, setWorkspaceToDeleteName] = useState('');
+
+  const handleDeleteClick = (workspaceId, workspaceName, e) => {
+    e.stopPropagation();
+    setWorkspaceToDeleteId(workspaceId);
+    setWorkspaceToDeleteName(workspaceName);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteWorkspace = () => {
+    if (workspaceToDeleteId) {
+      closeWorkspace(workspaceToDeleteId);
+    }
+    setIsDeleteModalOpen(false);
+    setWorkspaceToDeleteId(null);
+    setWorkspaceToDeleteName('');
+  };
   
   const toggleWorkspaceExpand = (workspaceId, e) => {
     e.stopPropagation();
@@ -510,8 +533,8 @@ export default function App() {
     setActiveWorkspaceId(workspaceId);
   };
 
-  const closeWorkspace = (workspaceId, e) => {
-    e.stopPropagation();
+  const closeWorkspace = (workspaceId, e = null) => {
+    if (e) e.stopPropagation();
     
     // Find all session IDs inside this workspace to terminate them
     const workspaceToClose = workspaces.find(w => w.id === workspaceId);
@@ -982,9 +1005,14 @@ export default function App() {
                             <ChevronRight size={14} />
                           </button>
                           <div 
-                            style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', flex: 1 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}
                             onDoubleClick={(e) => startRenameWorkspace(workspace.id, workspace.name, e)}
                           >
+                            {workspace.terminalServer ? (
+                              <Server size={13} style={{ color: 'var(--color-accent)', minWidth: '13px' }} title="Remote Workspace" />
+                            ) : (
+                              <Monitor size={13} style={{ color: '#c084fc', minWidth: '13px' }} title="Local Workspace" />
+                            )}
                             <span style={{
                               fontSize: '13px',
                               fontWeight: isActive ? 600 : 400,
@@ -1010,7 +1038,7 @@ export default function App() {
                             <Edit2 size={12} />
                           </button>
                           <button 
-                            onClick={(e) => closeWorkspace(workspace.id, e)}
+                            onClick={(e) => handleDeleteClick(workspace.id, workspace.name, e)}
                             style={{
                               background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', opacity: 0.6
                             }}
@@ -1490,6 +1518,85 @@ export default function App() {
                 }}
               >
                 {createWorkspaceLoading ? 'Validating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(9, 10, 15, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'fadeIn 0.25s ease-out'
+        }}>
+          <div style={{
+            background: 'rgba(18, 20, 30, 0.85)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '360px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(239, 68, 68, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: '#ffffff', margin: 0 }}>
+                Delete Workspace
+              </h3>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--color-text-main)', margin: 0, lineHeight: '1.5' }}>
+              Are you sure you want to delete workspace <strong style={{ color: '#ef4444' }}>{workspaceToDeleteName}</strong>? This will terminate all active terminal sessions in this workspace.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleConfirmDeleteWorkspace}
+                style={{
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>
