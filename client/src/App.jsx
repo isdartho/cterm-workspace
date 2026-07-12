@@ -1344,7 +1344,14 @@ export default function App() {
         ) : (
           /* Empty Workspace state */
           <div style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justify: 'center', gap: '16px', color: 'var(--color-text-muted)'
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            color: 'var(--color-text-muted)',
+            height: '100%'
           }}>
             <Activity size={48} className="text-primary animate-pulse" />
             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: '#ffffff' }}>No active workspaces</h3>
