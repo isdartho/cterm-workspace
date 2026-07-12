@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  cterm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cterm-app
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=admin
+      - PTY_SHARED_SECRET=cterm_shared_secret_key_change_me
+    volumes:
+      # Persist workspace JSON database on host
+      - ./server/workspaces.json:/app/server/workspaces.json
+    restart: unless-stopped
