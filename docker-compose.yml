@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: cterm-server
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=admin
+      - PTY_SHARED_SECRET=cterm_shared_secret_key_change_me
+    volumes:
+      - ./server/workspaces.json:/app/workspaces.json
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - VITE_BACKEND_HOST=localhost
+        - VITE_BACKEND_PORT=3001
+    container_name: cterm-client
+    ports:
+      - "8080:80"
+    restart: unless-stopped

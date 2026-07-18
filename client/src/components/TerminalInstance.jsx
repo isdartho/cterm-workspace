@@ -21,7 +21,9 @@ export default function TerminalInstance({
   canClose = true,
   onSetActive,
   title,
-  onRename
+  onRename,
+  terminalServer,
+  terminalServerToken
 }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState('connecting');
@@ -76,8 +78,20 @@ export default function TerminalInstance({
     }, 50);
 
     // Setup WebSocket
-    const token = sessionStorage.getItem('cterm_auth_token') || '';
-    const wsUrl = `${BACKEND_WS_PROTOCOL}//${BACKEND_WS_HOST}/terminals/${sessionId}?token=${token}`;
+    let wsUrl = '';
+    let token = '';
+
+    if (terminalServer) {
+      const cleanServer = terminalServer.replace(/\/$/, '');
+      const wsProtocol = cleanServer.startsWith('https') ? 'wss:' : 'ws:';
+      const hostVal = cleanServer.replace(/^https?:\/\//, '');
+      token = terminalServerToken || '';
+      wsUrl = `${wsProtocol}//${hostVal}/terminals/${sessionId}?token=${token}`;
+    } else {
+      token = sessionStorage.getItem('cterm_auth_token') || '';
+      wsUrl = `${BACKEND_WS_PROTOCOL}//${BACKEND_WS_HOST}/terminals/${sessionId}?token=${token}`;
+    }
+
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

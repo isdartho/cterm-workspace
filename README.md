@@ -82,6 +82,49 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
 
 ---
 
+## Remote Server Deployment & Multi-Host Setup
+
+cTerm supports a multi-host architecture where you can spin up standalone PTY servers on different machines (remote servers, VMs, or IoT devices) and manage all of them from a single dashboard.
+
+### 1. Deploying a Standalone PTY Server
+
+To deploy cTerm as a headless terminal server on a remote system:
+
+1. Copy the `server/` directory or clone the repository to the remote machine.
+2. Install the necessary native compile dependencies:
+   - **Linux**: `sudo apt install build-essential python3 make g++`
+   - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+3. Install dependencies:
+   ```bash
+   npm install --omit=dev
+   ```
+4. Create a `.env` file in the remote server folder and configure:
+   ```env
+   PORT=3001
+   PTY_SHARED_SECRET=your_secure_api_secret_key
+   ```
+   *Note: `PTY_SHARED_SECRET` acts as a static authorization token to secure PTY spawning and WebSocket upgrades on this server.*
+5. Start the server:
+   ```bash
+   npm start
+   ```
+
+### 2. Connecting a Workspace to the Remote Server
+
+Once your remote PTY server is running, connect it to your central cTerm dashboard:
+
+1. Open your central dashboard (e.g., `http://localhost:5173` or `http://localhost:8080`).
+2. Click the **New** button in the sidebar to create a workspace.
+3. In the popup dialog, enter:
+   - **Workspace Name**: e.g., `AWS-Prod-Database`
+   - **Terminal Server URL**: `http://<remote-ip-address>:3001`
+   - **Server Secret / Token**: `<your_secure_api_secret_key>` (matching the `PTY_SHARED_SECRET` set on the remote server).
+4. Click **Create**.
+
+cTerm will automatically direct all terminal PTY creations and WebSocket data streams for this workspace to the remote host. You can check the target server and active terminals at any time by clicking the expand arrow next to the workspace name in the sidebar.
+
+---
+
 ## Workspace Layout & Protocol Design
 
 The frontend layout is modeled as a recursive binary split tree. Workspaces preserve this tree structure, identifying terminal nodes by their session IDs:

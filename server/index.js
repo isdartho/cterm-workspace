@@ -39,7 +39,9 @@ const authenticate = (req, res, next) => {
   }
   
   const token = authHeader.split(' ')[1];
-  if (!activeTokens.has(token)) {
+  const sharedSecret = process.env.PTY_SHARED_SECRET;
+  
+  if (!activeTokens.has(token) && (!sharedSecret || token !== sharedSecret)) {
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
   
@@ -204,7 +206,9 @@ server.on('upgrade', (request, socket, head) => {
   
   // Validate auth token
   const token = url.searchParams.get('token');
-  if (!token || !activeTokens.has(token)) {
+  const sharedSecret = process.env.PTY_SHARED_SECRET;
+  
+  if (!token || (!activeTokens.has(token) && (!sharedSecret || token !== sharedSecret))) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
     socket.destroy();
     return;
