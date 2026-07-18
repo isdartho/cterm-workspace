@@ -15,8 +15,12 @@ cTerm provides an ideal sandbox dashboard, making it highly effective for runnin
 - 📤 **Single-Click Sign Out**: Dedicated logout action button in the sidebar header to easily clear authentication states.
 - 🗂️ **IDE-Grade Workspaces**: Create, rename, and manage multiple workspaces. Each workspace acts as an independent canvas containing its own layout of terminals.
 - 🥞 **Multi-Pane Split Layouts**: Split any active terminal pane **horizontally** or **vertically** to create multi-session grid views.
+- ☁️ **Remote PTY Server Workspaces**: Configure a workspace to connect to standalone terminal servers using persistent authorization secret tokens (`PTY_SHARED_SECRET`).
+- 🩺 **Connection & Token Validation**: Automatically checks target server connectivity and API token validity before registering a new workspace, preventing dead endpoints.
+- 📺 **Visual Host Indicators**: Prominently shows `Monitor` (local host) and `Server` (remote host) icons before workspace names in the sidebar layout.
 - 🎚️ **Interactive Resizing**: Drag the split dividers in real-time to adjust pane dimensions.
 - 🫳 **Drag & Drop Re-arrangement**: Drag a terminal header and drop it on another pane to instantly swap their session locations.
+- 🛡️ **Workspace Deletion Protection**: A warning confirmation modal prevents accidental workspace removal and session termination.
 - 🔄 **State Persistence**: Reconnect to active shells automatically. The workspace layout and division structures are persisted in `localStorage`, meaning refreshes or restarts preserve your exact layout and backend shell history.
 - 🎨 **Appearance Controls**: Switch themes (Dracula, Nord, Cyberpunk, One Dark, Light), adjust font sizes (12px to 20px), toggle cursor blinking, and select cursor style (Block, Underline, Bar) in real-time.
 - 💎 **Premium Dashboard Styling**: Modern interface with glassmorphic elements, neon cues, and smooth transitions.
@@ -79,6 +83,29 @@ Make sure you have Node.js (v18+) and npm installed. Since `node-pty` compiles n
    Navigate your browser to [http://localhost:3001](http://localhost:3001) (or the custom `PORT` set in `server/.env`).
 
 5. Sign in with the credentials configured in `server/.env` (default is **admin / admin**).
+
+### Docker Deployment
+
+cTerm is fully containerized and configured for multi-service deployment using Docker Compose. The client and server run as separate services, communicating over exposed ports.
+
+1. **Build and Run**:
+   To build both the React frontend and Node.js PTY backend and launch them in the background, run:
+   ```bash
+   docker compose up -d --build
+   ```
+
+2. **Accessing the Services**:
+   - **cTerm Client Dashboard**: Accessible at [http://localhost:8080](http://localhost:8080).
+   - **cTerm Server PTY Engine**: Runs on port `3001`.
+
+3. **Persistent Storage**:
+   The `docker-compose.yml` mounts the server's `workspaces.json` to the host directory `./server/workspaces.json`. Any workspaces created in the dashboard are persisted across container rebuilds and restarts.
+
+4. **Environment Variables**:
+   You can customize the credentials and PTY secrets directly in the `docker-compose.yml` environment block or by passing an environment file:
+   - `AUTH_USERNAME`: Username for dashboard access (default: `admin`).
+   - `AUTH_PASSWORD`: Password for dashboard access (default: `admin`).
+   - `PTY_SHARED_SECRET`: Token secret to protect PTY WebSocket connections.
 
 ---
 
