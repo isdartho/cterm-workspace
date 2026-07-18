@@ -837,7 +837,7 @@ export default function App() {
               background: 'linear-gradient(135deg, #ffffff 30%, #a78bfa 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
-            }}>cTerm Workspace</h1>
+            }}>cTerm</h1>
           </div>
           
           {/* Collapse Sidebar Trigger */}
